@@ -1,0 +1,54 @@
+---
+- name: Deploy EC2 instance
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  
+  vars_files:
+  - ansible_aws_creds.yml
+  - ansible_public_vars.yml
+
+  tasks:
+
+  - name: Create NEW web server security group
+    ec2_group:
+      name: NewWebServer
+      description: Initial web server security group
+      vpc_id: "{{ aws_vpc_id }}"
+      region: "{{ aws_region }}"
+      aws_secret_key: "{{ secret_access_key }}"
+      aws_access_key: "{{ access_key_id }}"
+      rules:
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+
+  - name: Create PROD server security group
+    ec2_group:
+      name: ProdWebServer
+      description: Production web server security group
+      vpc_id: "{{ aws_vpc_id }}"
+      region: "{{ aws_region }}"
+      aws_secret_key: "{{ secret_access_key }}"
+      aws_access_key: "{{ access_key_id }}" 
+      rules:
+        - proto: tcp
+          from_port: "{{ prod_ssh_port }}"
+          to_port: "{{ prod_ssh_port }}"
+          cidr_ip: 0.0.0.0/0
+
+  - name: Provision new EC2 server
+    ec2:
+      aws_secret_key: "{{ secret_access_key }}"
+      aws_access_key: "{{ access_key_id }}"
+      key_name: "{{ aws_key_name }}"
+      instance_type: "{{ aws_instance_type }}"
+      region: "{{ aws_region }}"
+      image: "{{ ami_image }}"
+      wait: yes
+      group: NewWebServer
+      vpc_subnet_id: "{{ aws_subnet_id }}"
+      assign_public_ip: yes
+      
+         
