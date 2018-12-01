@@ -1,0 +1,45 @@
+---
+#Create VPC
+- name: Create VPC
+  ec2_vpc_net:
+    name: "{{ vpc_name }}"
+    cidr_block: "{{ vpc_cidr_block }}"
+    region: "{{ aws_region }}"
+  register: vpc_details
+
+# Create first subnet
+- name: Creating initial subnet
+  ec2_vpc_subnet:
+    state: present
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    cidr: "{{ subnet1_cidr }}"
+  register: subnet_details
+
+# Creating Security Group
+- name: Creating security group
+  ec2_group:
+    name: "{{ aws_sg_name }}"
+    description: "{{ aws_sg_description }}"
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+
+# Creating internet gateway
+- name: Creating internet gateway
+  ec2_vpc_igw:
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    state: present
+  register: igw_details
+
+# Create route table for subnet
+- name: Setting up public route
+  ec2_vpc_route_table:
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    region: "{{ aws_region }}"
+    subnets: "{{ subnet_details.subnet.id }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gateway_id: "{{ igw_details.gateway_id }}"

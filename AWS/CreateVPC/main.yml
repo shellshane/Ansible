@@ -1,0 +1,10 @@
+# main.yml
+# Run VPC creation tasks
+
+- hosts: local
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
+    AWS_REGION: "{{ aws_region }}"
+  tasks:
+    - include_tasks: tasks/vpc_setup.yml
