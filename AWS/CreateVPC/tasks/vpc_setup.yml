@@ -61,7 +61,7 @@
       - proto: tcp
         from_port: 22
         to_port: 22
-        cidr_ip: 0.0.0.0/0
+        cidr_ip: "{{ internet_cidr_block }}"
 
 # Creating production server security group
 - name: Creating production server security group
@@ -73,15 +73,15 @@
       - proto: tcp
         from_port: "{{ aws_prod_sg_ssh_port }}"
         to_port: "{{ aws_prod_sg_ssh_port }}"
-        cidr_ip: 0.0.0.0/0
+        cidr_ip: "{{ internet_cidr_block }}"
       - proto: tcp
         from_port: 80
         to_port: 80
-        cidr_ip: 0.0.0.0/0
+        cidr_ip: "{{ internet_cidr_block }}"
       - proto: tcp
         from_port: 443
         to_port: 443
-        cidr_ip: 0.0.0.0/0
+        cidr_ip: "{{ internet_cidr_block }}"
 
 # Creating internet gateway
 - name: Creating internet gateway
@@ -101,7 +101,7 @@
       - "{{ pub_sub_az_1_details.subnet.id }}"
       - "{{ pub_sub_az_2_details.subnet.id }}"
     routes:
-      - dest: 0.0.0.0/0
+      - dest: "{{ internet_cidr_block }}"
         gateway_id: "{{ igw_details.gateway_id }}"
 
 # Create route table for private subnet
@@ -115,7 +115,7 @@
       - "{{ priv_sub_az_1_details.subnet.id }}"
       - "{{ priv_sub_az_2_details.subnet.id }}"
     routes:
-      - dest: 10.0.0.0/16
+      - dest: "{{ vpc_cidr_block }}"
         gateway_id: local
 
 # Create network access control list
@@ -131,13 +131,13 @@
         "{{ priv_sub_az_2_details.subnet.id }}"
     ]
     ingress: [
-        [100, 'tcp', 'allow', '0.0.0.0/0', null, null, 22, 22],
-        [200, 'tcp', 'allow', '0.0.0.0/0', null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
-        [300, 'tcp', 'allow', '0.0.0.0/0', null, null, 80, 80],
-        [400, 'tcp', 'allow', '0.0.0.0/0', null, null, 443, 443]
+        [100, 'tcp', 'allow', "{{ internet_cidr_block }}", null, null, 22, 22],
+        [200, 'tcp', 'allow', "{{ internet_cidr_block }}", null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
+        [300, 'tcp', 'allow', "{{ internet_cidr_block }}", null, null, 80, 80],
+        [400, 'tcp', 'allow', "{{ internet_cidr_block }}", null, null, 443, 443]
     ]
     egress: [
-        [100, 'all', 'allow', '0.0.0.0/0', null, null, null, null]
+        [100, 'all', 'allow', "{{ internet_cidr_block }}", null, null, null, null]
     ]
     state: 'present'
 
