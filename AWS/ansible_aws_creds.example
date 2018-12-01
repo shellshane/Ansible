@@ -1,6 +1,0 @@
-access_key_id: AKIASDDO70438
-secret_access_key: mwefFe3osFdC23r23r5VvhfereZZ
-aws_vpc_id: vpc-0ff7859e36251
-aws_subnet_id: subnet-09434eacc51a
-prod_ssh_port: 4242
-aws_key_name: my_ansible_keyz
