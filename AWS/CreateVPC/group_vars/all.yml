@@ -4,9 +4,15 @@ ansible_connection: local
 #VPC Details
 aws_region: us-west-1
 vpc_name: AnsibleVPC
-vpc_cidr_block: 10.0.0.0/16
-subnet1_cidr: 10.0.0.0/24
 
-aws_sg_name: linuxservers
-aws_sg_description: allow SSH 
+vpc_cidr_block: 10.0.0.0/16
+pub_subnet_cidr: 10.0.0.0/24
+priv_subnet_cidr: 10.0.128.0/24
+
+aws_initial_sg_name: PublicServersNonProd
+aws_initial_sg_description: allow SSH 
+
+aws_prod_sg_name: PublicServersProd
+aws_prod_sg_description: allow HTTP, HTTPS, non-default SSH
+aws_prod_sg_ssh_port: 2666
 

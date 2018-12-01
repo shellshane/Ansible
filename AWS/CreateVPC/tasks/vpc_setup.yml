@@ -7,24 +7,52 @@
     region: "{{ aws_region }}"
   register: vpc_details
 
-# Create first subnet
-- name: Creating initial subnet
+# Create public subnet
+- name: Creating public subnet
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
-    cidr: "{{ subnet1_cidr }}"
-  register: subnet_details
+    cidr: "{{ pub_subnet_cidr }}"
+  register: pub_subnet_details
 
-# Creating Security Group
-- name: Creating security group
+# Create private subnet
+- name: Creating private subnet
+  ec2_vpc_subnet:
+    state: present
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    cidr: "{{ priv_subnet_cidr }}"
+  register: priv_subnet_details
+
+# Creating initial security group
+- name: Creating initial server security group
   ec2_group:
-    name: "{{ aws_sg_name }}"
-    description: "{{ aws_sg_description }}"
+    name: "{{ aws_initial_sg_name }}"
+    description: "{{ aws_initial_sg_description }}"
     vpc_id: "{{ vpc_details.vpc.id }}"
     rules:
       - proto: tcp
         from_port: 22
         to_port: 22
+        cidr_ip: 0.0.0.0/0
+
+# Creating production server security group
+- name: Creating production server security group
+  ec2_group:
+    name: "{{ aws_prod_sg_name }}"
+    description: "{{ aws_prod_sg_description }}"
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    rules:
+      - proto: tcp
+        from_port: "{{ aws_prod_sg_ssh_port }}"
+        to_port: "{{ aws_prod_sg_ssh_port }}"
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
         cidr_ip: 0.0.0.0/0
 
 # Creating internet gateway
@@ -34,12 +62,45 @@
     state: present
   register: igw_details
 
-# Create route table for subnet
-- name: Setting up public route
+# Create route table for public subnet
+- name: Setting up public subnet route
   ec2_vpc_route_table:
     vpc_id: "{{ vpc_details.vpc.id }}"
     region: "{{ aws_region }}"
-    subnets: "{{ subnet_details.subnet.id }}"
+    tags:
+      Name: PublicSubnet
+    subnets: "{{ pub_subnet_details.subnet.id }}"
     routes:
       - dest: 0.0.0.0/0
         gateway_id: "{{ igw_details.gateway_id }}"
+
+# Create route table for private subnet
+- name: Setting up private subnet route
+  ec2_vpc_route_table:
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    region: "{{ aws_region }}"
+    tags:
+      Name: PrivateSubnet
+    subnets: "{{ priv_subnet_details.subnet.id }}"
+    routes:
+      - dest: 10.0.0.0/16
+        gateway_id: local
+
+# Create network access control list
+- name: "Create a NACL to restrict traffic to desired ports"
+  ec2_vpc_nacl:
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    name: vpc_nacl
+    region: "{{ aws_region }}" 
+    subnets: ["{{ pub_subnet_details.subnet.id }}", "{{ priv_subnet_details.subnet.id }}"]
+    ingress: [
+        [100, 'tcp', 'allow', '0.0.0.0/0', null, null, 22, 22],
+        [200, 'tcp', 'allow', '0.0.0.0/0', null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
+        [300, 'tcp', 'allow', '0.0.0.0/0', null, null, 80, 80],
+        [400, 'tcp', 'allow', '0.0.0.0/0', null, null, 443, 443],
+    ]
+    egress: [
+        [100, 'all', 'allow', '0.0.0.0/0', null, null, null, null]
+    ]
+    state: 'present'
+
