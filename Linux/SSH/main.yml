@@ -1,0 +1,13 @@
+---
+# This playbook configures Centos 7 servers
+- name: Applying common configurations to Centos servers
+  become: true
+  hosts: centos_servers
+  roles:
+    - centos_common
+
+- name: Applying common configurations to Ubuntu servers
+  become: true
+  hosts: ubuntu_servers
+  roles:
+    - ubuntu_common

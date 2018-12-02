@@ -135,6 +135,7 @@
         [200, 'tcp', 'allow', "{{ ssh_range }}", null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
         [300, 'tcp', 'allow', "{{ inet_range }}", null, null, 80, 80],
         [400, 'tcp', 'allow', "{{ inet_range }}", null, null, 443, 443]
+        [500, 'tcp', 'allow', "{{ inet_range }}", null, null, 1024, 65535]
     ]
     egress: [
         [100, 'all', 'allow', "{{ inet_range }}", null, null, null, null]

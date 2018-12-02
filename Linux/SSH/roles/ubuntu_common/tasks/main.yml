@@ -1,0 +1,8 @@
+---
+#Update packages on Ubuntu servers
+- name: Updating all packages on Ubuntu systems
+  apt:
+    name: '*'
+    state: latest
+    update_cache: yes
+    force_apt_get: yes

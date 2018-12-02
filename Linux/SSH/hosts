@@ -1,0 +1,6 @@
+# Host Inventory
+[centos_servers]
+54.241.253.215 ansible_user=centos
+
+[ubuntu_servers]
+13.57.184.238 ansible_user=ubuntu

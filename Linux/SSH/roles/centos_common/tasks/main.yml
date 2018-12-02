@@ -1,0 +1,7 @@
+--- 
+# Update packages on all servers
+
+- name: Updating all packages on CentOS systems
+  yum:
+    name: '*'
+    state: latest
