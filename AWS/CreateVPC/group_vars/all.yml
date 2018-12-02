@@ -1,29 +1,33 @@
 # Don't run over SSH
 ansible_connection: local
 
-#VPC Details
+# VPC Details
 aws_region: us-west-1
 aws_az_1: us-west-1a
 aws_az_2: us-west-1c
-
 vpc_name: AnsibleVPC
-
-inet_range: 0.0.0.0/0
-ssh_range: 0.0.0.0/0
 vpc_cidr_block: 10.0.0.0/16
 
+# Subnet details
+# Public subnets
 pub_sub_az_1_name: Public1a
 pub_sub_az_1_cidr: 10.0.0.0/24
 
 pub_sub_az_2_name: Public1c
 pub_sub_az_2_cidr: 10.0.1.0/24
 
+# Private subnets
 priv_sub_az_1_name: Private1a
 priv_sub_az_1_cidr: 10.0.128.0/24
 
 priv_sub_az_2_name: Private1c
 priv_sub_az_2_cidr: 10.0.129.0/24
 
+# IP ranges
+inet_range: 0.0.0.0/0
+ssh_range: 0.0.0.0/0
+
+# Security group information
 aws_initial_sg_name: PublicServersNonProd
 aws_initial_sg_description: allow SSH 
 
