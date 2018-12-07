@@ -2,9 +2,11 @@
 #Create VPC
 - name: Create VPC
   ec2_vpc_net:
-    name: "{{ vpc_name }}"
-    cidr_block: "{{ vpc_cidr_block }}"
-    region: "{{ aws_region }}"
+    name: "{{ vpc.name }}"
+    cidr_block: "{{ vpc.cidr }}"
+    region: "{{ vpc.region }}"
+    tags:
+      Creator: "{{ creator }}" 
   register: vpc_details
 
 # Create public subnet AZ-1
@@ -12,10 +14,11 @@
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
-    az: "{{ aws_az_1 }}"
-    cidr: "{{ pub_sub_az_1_cidr }}"
+    az: "{{ vpc.az_1 }}"
+    cidr: "{{ pub_sub_az_1.cidr }}"
     resource_tags:
-      Name: "{{ pub_sub_az_1_name }}"
+      Name: "{{ pub_sub_az_1.name }}"
+      Creator: "{{ creator }}"
   register: pub_sub_az_1_details
 
 # Create public subnet AZ-2
@@ -23,10 +26,11 @@
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
-    az: "{{ aws_az_2 }}"
-    cidr: "{{ pub_sub_az_2_cidr }}"
+    az: "{{ vpc.az_2 }}"
+    cidr: "{{ pub_sub_az_2.cidr }}"
     resource_tags:
-      Name: "{{ pub_sub_az_2_name }}"
+      Name: "{{ pub_sub_az_2.name }}"
+      Creator: "{{ creator }}"
   register: pub_sub_az_2_details
 
 # Create private subnet AZ-1
@@ -34,10 +38,11 @@
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
-    az: "{{ aws_az_1 }}"
-    cidr: "{{ priv_sub_az_1_cidr }}"
+    az: "{{ vpc.az_1 }}"
+    cidr: "{{ priv_sub_az_1.cidr }}"
     resource_tags:
-      Name: "{{ priv_sub_az_1_name }}"
+      Name: "{{ priv_sub_az_1.name }}"
+      Creator: "{{ creator }}"
   register: priv_sub_az_1_details
 
 # Create private subnet AZ-2
@@ -45,10 +50,11 @@
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
-    az: "{{ aws_az_2 }}"
-    cidr: "{{ priv_sub_az_2_cidr }}"
+    az: "{{ vpc.az_2 }}"
+    cidr: "{{ priv_sub_az_2.cidr }}"
     resource_tags:
-      Name: "{{ priv_sub_az_2_name }}"
+      Name: "{{ priv_sub_az_2.name }}"
+      Creator: "{{ creator }}"
   register: priv_sub_az_2_details
 
 # Creating initial security group
@@ -57,6 +63,8 @@
     name: "{{ aws_initial_sg_name }}"
     description: "{{ aws_initial_sg_description }}"
     vpc_id: "{{ vpc_details.vpc.id }}"
+    tags:
+      Creator: "{{ creator }}"
     rules:
       - proto: tcp
         from_port: 22
@@ -69,6 +77,8 @@
     name: "{{ aws_prod_sg_name }}"
     description: "{{ aws_prod_sg_description }}"
     vpc_id: "{{ vpc_details.vpc.id }}"
+    tags:
+      Creator: "{{ creator }}"
     rules:
       - proto: tcp
         from_port: "{{ aws_prod_sg_ssh_port }}"
@@ -88,15 +98,19 @@
   ec2_vpc_igw:
     vpc_id: "{{ vpc_details.vpc.id }}"
     state: present
+    tags:
+      Name: "{{ igw_name }}"
+      Creator: "{{ creator }}"
   register: igw_details
 
 # Create route table for public subnet
 - name: Setting up public subnet route
   ec2_vpc_route_table:
     vpc_id: "{{ vpc_details.vpc.id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc.region }}"
     tags:
       Name: PublicSubnets
+      Creator: "{{ creator }}"
     subnets: 
       - "{{ pub_sub_az_1_details.subnet.id }}"
       - "{{ pub_sub_az_2_details.subnet.id }}"
@@ -108,14 +122,15 @@
 - name: Setting up private subnet route
   ec2_vpc_route_table:
     vpc_id: "{{ vpc_details.vpc.id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc.region }}"
     tags:
       Name: PrivateSubnets
+      Creator: "{{ creator }}"
     subnets: 
       - "{{ priv_sub_az_1_details.subnet.id }}"
       - "{{ priv_sub_az_2_details.subnet.id }}"
     routes:
-      - dest: "{{ vpc_cidr_block }}"
+      - dest: "{{ vpc.cidr }}"
         gateway_id: local
 
 # Create network access control list
@@ -123,18 +138,21 @@
   ec2_vpc_nacl:
     vpc_id: "{{ vpc_details.vpc.id }}"
     name: vpc_nacl
-    region: "{{ aws_region }}" 
+    region: "{{ vpc.region }}" 
     subnets: [
         "{{ pub_sub_az_1_details.subnet.id }}", 
         "{{ pub_sub_az_2_details.subnet.id }}",
         "{{ priv_sub_az_1_details.subnet.id }}", 
         "{{ priv_sub_az_2_details.subnet.id }}"
     ]
+    tags:
+      Name: PrimaryNACL
+      Creator: "{{ creator }}"
     ingress: [
         [100, 'tcp', 'allow', "{{ ssh_range }}", null, null, 22, 22],
         [200, 'tcp', 'allow', "{{ ssh_range }}", null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
         [300, 'tcp', 'allow', "{{ inet_range }}", null, null, 80, 80],
-        [400, 'tcp', 'allow', "{{ inet_range }}", null, null, 443, 443]
+        [400, 'tcp', 'allow', "{{ inet_range }}", null, null, 443, 443],
         [500, 'tcp', 'allow', "{{ inet_range }}", null, null, 1024, 65535]
     ]
     egress: [
