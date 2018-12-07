@@ -60,8 +60,8 @@
 # Creating initial security group
 - name: Creating initial server security group
   ec2_group:
-    name: "{{ aws_initial_sg_name }}"
-    description: "{{ aws_initial_sg_description }}"
+    name: "{{ sg.initial_name }}"
+    description: "{{ sg.initial_description }}"
     vpc_id: "{{ vpc_details.vpc.id }}"
     tags:
       Creator: "{{ creator }}"
@@ -69,29 +69,29 @@
       - proto: tcp
         from_port: 22
         to_port: 22
-        cidr_ip: "{{ ssh_range }}"
+        cidr_ip: "{{ range.ssh }}"
 
 # Creating production server security group
 - name: Creating production server security group
   ec2_group:
-    name: "{{ aws_prod_sg_name }}"
-    description: "{{ aws_prod_sg_description }}"
+    name: "{{ sg.prod_name }}"
+    description: "{{ sg.prod_description }}"
     vpc_id: "{{ vpc_details.vpc.id }}"
     tags:
       Creator: "{{ creator }}"
     rules:
       - proto: tcp
-        from_port: "{{ aws_prod_sg_ssh_port }}"
-        to_port: "{{ aws_prod_sg_ssh_port }}"
-        cidr_ip: "{{ ssh_range }}"
+        from_port: "{{ sg.prod_ssh_port }}"
+        to_port: "{{ sg.prod_ssh_port }}"
+        cidr_ip: "{{ range.ssh }}"
       - proto: tcp
         from_port: 80
         to_port: 80
-        cidr_ip: "{{ inet_range }}"
+        cidr_ip: "{{ range.inet }}"
       - proto: tcp
         from_port: 443
         to_port: 443
-        cidr_ip: "{{ inet_range }}"
+        cidr_ip: "{{ range.inet }}"
 
 # Creating internet gateway
 - name: Creating internet gateway
@@ -115,7 +115,7 @@
       - "{{ pub_sub_az_1_details.subnet.id }}"
       - "{{ pub_sub_az_2_details.subnet.id }}"
     routes:
-      - dest: "{{ inet_range }}"
+      - dest: "{{ range.inet }}"
         gateway_id: "{{ igw_details.gateway_id }}"
 
 # Create route table for private subnet
@@ -149,14 +149,14 @@
       Name: PrimaryNACL
       Creator: "{{ creator }}"
     ingress: [
-        [100, 'tcp', 'allow', "{{ ssh_range }}", null, null, 22, 22],
-        [200, 'tcp', 'allow', "{{ ssh_range }}", null, null, "{{ aws_prod_sg_ssh_port }}", "{{ aws_prod_sg_ssh_port }}"],
-        [300, 'tcp', 'allow', "{{ inet_range }}", null, null, 80, 80],
-        [400, 'tcp', 'allow', "{{ inet_range }}", null, null, 443, 443],
-        [500, 'tcp', 'allow', "{{ inet_range }}", null, null, 1024, 65535]
+        [100, 'tcp', 'allow', "{{ range.ssh }}", null, null, 22, 22],
+        [200, 'tcp', 'allow', "{{ range.ssh }}", null, null, "{{ sg.prod_ssh_port }}", "{{ sg.prod_ssh_port }}"],
+        [300, 'tcp', 'allow', "{{ range.inet }}", null, null, 80, 80],
+        [400, 'tcp', 'allow', "{{ range.inet }}", null, null, 443, 443],
+        [500, 'tcp', 'allow', "{{ range.inet }}", null, null, 1024, 65535]
     ]
     egress: [
-        [100, 'all', 'allow', "{{ inet_range }}", null, null, null, null]
+        [100, 'all', 'allow', "{{ range.inet }}", null, null, null, null]
     ]
     state: 'present'
 

@@ -1,8 +1,7 @@
 # Don't run over SSH
 ansible_connection: local
 
-#UserName
-
+#Creator Tag
 creator: AnsibleUser
 
 # VPC Details
@@ -34,16 +33,17 @@ priv_sub_az_2:
   cidr: 10.0.129.0/24
 
 # IP ranges
-inet_range: 0.0.0.0/0
-ssh_range: 0.0.0.0/0
+range:
+  inet: 0.0.0.0/0
+  ssh: 0.0.0.0/0
 
 # Security group information
-aws_initial_sg_name: PublicServersNonProd
-aws_initial_sg_description: allow SSH 
-
-aws_prod_sg_name: PublicServersProd
-aws_prod_sg_description: allow HTTP, HTTPS, non-default SSH
-aws_prod_sg_ssh_port: 2666
+sg:
+  initial_name: PublicServersNonProd
+  initial_description: allow SSH 
+  prod_name: PublicServersProd
+  prod_description: allow HTTP, HTTPS, non-default SSH
+  prod_ssh_port: 2666
 
 #IGW
 igw_name: InternetGateway
