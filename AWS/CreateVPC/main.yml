@@ -3,10 +3,12 @@
 
 - hosts: local
   vars_files:
-    credentials.yml
+    -  credentials.yml
+    -  deployment_vars.yml
   environment:
     AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
     AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
     AWS_REGION: "{{ vpc.region }}"
   tasks:
-    - include_tasks: tasks/vpc_setup.yml
+#    - include_tasks: tasks/vpc_setup.yml
+    - include_tasks: tasks/deploy_ec2_instances.yml

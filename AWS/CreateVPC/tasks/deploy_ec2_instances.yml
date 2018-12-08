@@ -1,0 +1,58 @@
+---
+# Grab subnet information
+- name: GATHERING SUBNET ID INFORMATION
+  ec2_vpc_subnet_facts:
+    filters:
+      "tag:Name": "{{ item }}"
+  with_items: 
+    - "{{ pub_sub_az_1.name }}"
+    - "{{ pub_sub_az_2.name }}"
+    - "{{ priv_sub_az_1.name }}"
+    - "{{ priv_sub_az_2.name }}"
+  register: subnet_facts
+
+- name: ORGANIZING FACTS
+  set_fact:
+   subnet_names: "{{ subnet_facts.results|map(attribute='subnets.0.tags.Name')|list }}"
+   subnet_ids: "{{ subnet_facts.results|map(attribute='subnets.0.id')|list }}"
+   
+
+- name: CREATING PUBLIC WEB INSTANCE {{ ec2.pub_inst1.name }} 
+  ec2:
+    key_name: "{{ ec2.pub_inst1.key }}"
+    group: "{{ sg.web_name }}" 
+    instance_type: "{{ ec2.pub_inst1.type }}"
+    image: "{{ ec2.pub_inst1.image }}"
+    wait: yes
+    instance_tags:
+      Name: "{{ ec2.pub_inst1.name }}"
+      Creator: "{{ creator }}"    
+    vpc_subnet_id: "{{ subnet_ids[0] }}"
+    assign_public_ip: "{{ ec2.pub_inst1.pub_ip }}"    
+- name: CREATING PUBLIC BASTION INSTANCE {{ ec2.pub_inst2.name }}
+  ec2:
+    key_name: "{{ ec2.pub_inst2.key }}"
+    group: "{{ sg.initial_name }}"
+    instance_type: "{{ ec2.pub_inst2.type }}"
+    image: "{{ ec2.pub_inst2.image }}"
+    wait: yes
+    instance_tags:
+      Name: "{{ ec2.pub_inst2.name }}"
+      Creator: "{{ creator }}"
+    vpc_subnet_id: "{{ subnet_ids[1] }}"
+    assign_public_ip: "{{ ec2.pub_inst2.pub_ip }}"
+
+- name: CREATING BACKEND EC2 INSTANCE {{ ec2.priv_inst1.name }}
+  ec2:
+    key_name: "{{ ec2.priv_inst1.key }}"
+    group: "{{ sg.back_name }}"
+    instance_type: "{{ ec2.priv_inst1.type }}"
+    image: "{{ ec2.priv_inst1.image }}"
+    wait: yes
+    instance_tags:
+      Name: "{{ ec2.priv_inst1.name }}"
+      Creator: "{{ creator }}"
+    vpc_subnet_id: "{{ subnet_ids[2] }}"
+    assign_public_ip: "{{ ec2.priv_inst1.pub_ip }}"
+
+

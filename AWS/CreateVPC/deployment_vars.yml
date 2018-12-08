@@ -1,0 +1,78 @@
+### Don't run over SSH
+ansible_connection: local
+
+### Creator tag for AWS resources
+creator: AnsibleUser
+
+### VPC Details
+
+vpc:
+  name: AnsibleVPC
+  region: us-west-1
+  az_1: us-west-1a
+  az_2: us-west-1c
+  cidr: 10.0.0.0/16
+
+### Subnet details
+pub_sub_az_1:
+  name: Public1a
+  cidr: 10.0.0.0/24
+
+pub_sub_az_2: 
+  name: Public1c
+  cidr: 10.0.1.0/24
+
+priv_sub_az_1:
+  name: Private1a
+  cidr: 10.0.128.0/24
+
+priv_sub_az_2:
+  name: Private1c
+  cidr: 10.0.129.0/24
+
+### Public IP ranges
+range:
+  inet: 0.0.0.0/0
+  ssh: 0.0.0.0/0
+
+### SSH port to use with security groups and NACL
+prod_ssh_port: 2666
+
+
+### Security group information
+sg:
+  initial_name: BastionServerDefault
+  initial_description: allow SSH for bastion
+  prod_name: BastionServerProduction
+  prod_description: allow SSH/2666 for bastion
+  web_name: WebServers 
+  web_description: allow SSH/22 internal and 80 and 443 external
+  back_name: BackEndServers
+  back_description: allow SSH/22 internal
+
+### NACL Information
+nacl_name: AnsibleNACL
+
+### IGW
+igw_name: AnsibleIG
+
+### EC2 Instances
+ec2:
+  pub_inst1:
+    type: t3.nano
+    key: ansible_key
+    image: ami-4826c22b
+    name: WebServer1
+    pub_ip: yes
+  pub_inst2:
+    type: t3.nano
+    key: ansible_key
+    image: ami-4826c22b
+    name: Bastion1
+    pub_ip: yes
+  priv_inst1:
+    type: t3.nano
+    key: ansible_key
+    image: ami-4826c22b
+    name: AnsiBackend1
+    pub_ip: no

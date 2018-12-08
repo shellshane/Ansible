@@ -1,6 +1,6 @@
 ---
-#Create VPC
-- name: Create VPC
+# Create VPC
+- name: CREATING VPC {{ vpc.name }} IN {{ vpc.region }}
   ec2_vpc_net:
     name: "{{ vpc.name }}"
     cidr_block: "{{ vpc.cidr }}"
@@ -10,7 +10,7 @@
   register: vpc_details
 
 # Create public subnet AZ-1
-- name: Creating public subnet on first AZ
+- name: CREATING SUBNET {{ pub_sub_az_1.name }} IN {{ vpc.az_1 }}
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
@@ -22,7 +22,7 @@
   register: pub_sub_az_1_details
 
 # Create public subnet AZ-2
-- name: Creating public subnet on second AZ
+- name: CREATING SUBNET {{ pub_sub_az_2.name }} IN {{ vpc.az_2 }}
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
@@ -34,7 +34,7 @@
   register: pub_sub_az_2_details
 
 # Create private subnet AZ-1
-- name: Creating private subnet on first AZ
+- name: CREATING SUBNET {{ priv_sub_az_1.name }} IN {{ vpc.az_1 }}
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
@@ -46,7 +46,7 @@
   register: priv_sub_az_1_details
 
 # Create private subnet AZ-2
-- name: Creating private subnet on second AZ
+- name: CREATING SUBNET {{ priv_sub_az_2.name }} IN {{ vpc.az_2 }}
   ec2_vpc_subnet:
     state: present
     vpc_id: "{{ vpc_details.vpc.id }}"
@@ -57,8 +57,8 @@
       Creator: "{{ creator }}"
   register: priv_sub_az_2_details
 
-# Creating initial security group
-- name: Creating initial server security group
+# Creating initial bastion security group
+- name: CREATING INITIAL BASTION SECURITY GROUP {{ sg.initial_name }}
   ec2_group:
     name: "{{ sg.initial_name }}"
     description: "{{ sg.initial_description }}"
@@ -71,8 +71,8 @@
         to_port: 22
         cidr_ip: "{{ range.ssh }}"
 
-# Creating production server security group
-- name: Creating production server security group
+# Creating production bastion server security group
+- name: CREATING PROD BASTION SECURITY GROUP {{ sg.prod_name }}
   ec2_group:
     name: "{{ sg.prod_name }}"
     description: "{{ sg.prod_description }}"
@@ -81,9 +81,22 @@
       Creator: "{{ creator }}"
     rules:
       - proto: tcp
-        from_port: "{{ sg.prod_ssh_port }}"
-        to_port: "{{ sg.prod_ssh_port }}"
+        from_port: "{{ prod_ssh_port }}"
+        to_port: "{{ prod_ssh_port }}"
         cidr_ip: "{{ range.ssh }}"
+
+- name: CREATING WEB SERVER SECURITY GROUP {{ sg.web_name }}
+  ec2_group:
+    name: "{{ sg.web_name }}"
+    description: "{{ sg.web_description }}"
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    tags:
+      Creator: "{{ creator }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ vpc.cidr }}"
       - proto: tcp
         from_port: 80
         to_port: 80
@@ -93,8 +106,22 @@
         to_port: 443
         cidr_ip: "{{ range.inet }}"
 
+# Creating backend security group
+- name: CREATING BACKEND SECURITY GROUP {{ sg.back_name }}
+  ec2_group:
+    name: "{{ sg.back_name }}"
+    description: "{{ sg.back_description }}"
+    vpc_id: "{{ vpc_details.vpc.id }}"
+    tags:
+      Creator: "{{ creator }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ vpc.cidr }}"
+
 # Creating internet gateway
-- name: Creating internet gateway
+- name: CREATING INTERNET GATEWAY {{ igw_name }}
   ec2_vpc_igw:
     vpc_id: "{{ vpc_details.vpc.id }}"
     state: present
@@ -103,8 +130,8 @@
       Creator: "{{ creator }}"
   register: igw_details
 
-# Create route table for public subnet
-- name: Setting up public subnet route
+# Create route table for public subnets
+- name: CREATING PUBLIC ROUTE TABLE
   ec2_vpc_route_table:
     vpc_id: "{{ vpc_details.vpc.id }}"
     region: "{{ vpc.region }}"
@@ -118,8 +145,8 @@
       - dest: "{{ range.inet }}"
         gateway_id: "{{ igw_details.gateway_id }}"
 
-# Create route table for private subnet
-- name: Setting up private subnet route
+# Create route table for private subnets
+- name: CREATING PRIVATE ROUTE TABLE
   ec2_vpc_route_table:
     vpc_id: "{{ vpc_details.vpc.id }}"
     region: "{{ vpc.region }}"
@@ -134,10 +161,10 @@
         gateway_id: local
 
 # Create network access control list
-- name: "Create a NACL to restrict traffic to desired ports"
+- name: CREATING "{{ nacl_name }}"
   ec2_vpc_nacl:
     vpc_id: "{{ vpc_details.vpc.id }}"
-    name: vpc_nacl
+    name: "{{ nacl_name }}"
     region: "{{ vpc.region }}" 
     subnets: [
         "{{ pub_sub_az_1_details.subnet.id }}", 
@@ -146,11 +173,11 @@
         "{{ priv_sub_az_2_details.subnet.id }}"
     ]
     tags:
-      Name: PrimaryNACL
+      Name: "{{ nacl_name }}"
       Creator: "{{ creator }}"
     ingress: [
         [100, 'tcp', 'allow', "{{ range.ssh }}", null, null, 22, 22],
-        [200, 'tcp', 'allow', "{{ range.ssh }}", null, null, "{{ sg.prod_ssh_port }}", "{{ sg.prod_ssh_port }}"],
+        [200, 'tcp', 'allow', "{{ range.ssh }}", null, null, "{{ prod_ssh_port }}", "{{ prod_ssh_port }}"],
         [300, 'tcp', 'allow', "{{ range.inet }}", null, null, 80, 80],
         [400, 'tcp', 'allow', "{{ range.inet }}", null, null, 443, 443],
         [500, 'tcp', 'allow', "{{ range.inet }}", null, null, 1024, 65535]
